@@ -6,6 +6,7 @@ from .collect import collect_feed, ingest_url
 from .scoring import Analyst
 from .sources import load_sources
 from .store import Store
+from .server import serve
 
 
 def parser():
@@ -20,10 +21,18 @@ def parser():
     score = sub.add_parser("score"); score.add_argument("--item-id", type=int)
     brief = sub.add_parser("brief"); brief.add_argument("--date"); brief.add_argument("--format", choices=("md", "json"), default="md")
     search = sub.add_parser("search"); search.add_argument("query"); search.add_argument("--format", choices=("md", "json"), default="md")
+    serve_cmd = sub.add_parser("serve", help="Start the local Signal Forge browser cockpit")
+    serve_cmd.add_argument("--host", default="127.0.0.1")
+    serve_cmd.add_argument("--port", default=8765, type=int)
+    serve_cmd.add_argument("--open", action="store_true", dest="open_browser")
     return p
 
 def main(argv=None):
-    args = parser().parse_args(argv); store = Store(args.db); store.init()
+    args = parser().parse_args(argv)
+    if args.command == "serve":
+        serve(args.host, args.port, args.db, args.open_browser)
+        return 0
+    store = Store(args.db); store.init()
     try:
         if args.command == "init-db": print(f"Initialised {args.db}"); return 0
         if args.command == "import-sources":
