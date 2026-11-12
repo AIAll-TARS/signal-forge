@@ -2,15 +2,19 @@
 
 A local-first Python 3.11+ MVP for investment intelligence on Polish and EU biogas and biomethane. It uses only the standard library and SQLite. No data leaves the machine except when a user explicitly runs `collect` or `ingest-url`.
 
-## Windows, first launch
+## WSL, first launch
 
-Double-click **`run_signal_forge.bat`** in the project folder. It creates a local `.venv`, installs Signal Forge, initializes the local SQLite database, imports the seed registry only for a fresh database, opens the cockpit at `http://127.0.0.1:8765`, and keeps the console visible if startup fails.
+From any WSL terminal, run:
 
-Use **`stop_signal_forge.bat`** to stop the default local server. The shipped experience is a `.bat` launcher, not an `.exe`. EXE packaging can be a phase 2 using PyInstaller if required.
+```bash
+/home/aiall/projects/signal-forge/run_signal_forge.sh
+```
+
+The launcher creates a local `.venv`, installs Signal Forge, initializes the SQLite database, imports the GGP source registry only for a fresh database, and opens the cockpit at `http://127.0.0.1:8765`. Press `Ctrl+C` in that terminal to stop the local app.
 
 The dashboard is local-only: it does not contact the network until you explicitly click **Run RSS / Atom scan** (or invoke the existing CLI collection/URL-ingest commands). Add only RSS or Atom source URLs for scanning.
 
-## Setup
+## Manual setup
 
 ```bash
 python -m venv .venv
