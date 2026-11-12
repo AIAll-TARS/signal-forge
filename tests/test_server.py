@@ -1,6 +1,7 @@
 import json, tempfile, threading, unittest
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
+from unittest.mock import patch
 from signal_forge.server import Handler, ThreadingHTTPServer
 from signal_forge.store import Store
 
@@ -15,5 +16,11 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(data['ok']);self.assertEqual(data['metrics']['sources'],1);self.assertEqual(data['metrics']['items'],1)
     def test_dashboard_shell(self):
         with urlopen(self.base+'/') as r: html=r.read().decode()
-        self.assertIn('SIGNAL FORGE',html);self.assertIn('Galia Green Power',html);self.assertIn('/api/scan',html)
+        self.assertIn('SIGNAL FORGE',html);self.assertIn('Galia Green Power',html);self.assertIn('/api/scan',html);self.assertIn('/api/ingest',html)
+    def test_manual_ingest(self):
+        captured={'title':'Biomethane tender','url':'https://example.test/article','content':'Poland biomethane tender','topics':['projects-transactions']}
+        request=Request(self.base+'/api/ingest',data=json.dumps({'url':captured['url'],'topics':captured['topics']}).encode(),headers={'Content-Type':'application/json'},method='POST')
+        with patch('signal_forge.server.ingest_url',return_value=captured):
+            with urlopen(request) as response: result=json.load(response)
+        self.assertTrue(result['created'])
 if __name__=='__main__':unittest.main()

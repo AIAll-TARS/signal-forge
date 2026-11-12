@@ -4,7 +4,7 @@ import json, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 from .brief import as_json, markdown
-from .collect import collect_feed
+from .collect import collect_feed, ingest_url
 from .scoring import Analyst
 from .store import Store
 
@@ -13,7 +13,7 @@ SHELL = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name
 </style></head><body><header><div class="brand">SIGNAL FORGE<small>GALIA GREEN POWER · INVESTMENT INTELLIGENCE</small></div><div class="status"><span class="dot">●</span> <span id="db">Checking local database</span></div></header><main><nav class="tabs" aria-label="Cockpit sections"><button class="active" data-page="overview">Overview</button><button data-page="findings">Findings</button><button data-page="sources">Sources</button><button data-page="briefing">Briefing</button><button class="primary" id="scan">Run RSS / Atom scan</button></nav>
 <section id="overview" class="page active"><h1>Decision cockpit</h1><p class="muted">A local-first watchtower for Polish and EU biogas and biomethane signals.</p><div class="grid" id="metrics"></div><div class="list" id="latest"></div></section>
 <section id="findings" class="page"><h1>Findings</h1><div class="tools"><input id="search" placeholder="Search topic, source, rationale"><select id="priority"><option value="">All priorities</option><option>critical</option><option>high</option><option>watch</option></select></div><div class="card"><table><thead><tr><th>Priority</th><th>Topic / finding</th><th>Score</th><th>Source</th><th>Rationale</th></tr></thead><tbody id="findings-body"></tbody></table><div id="findings-empty" class="empty"></div></div></section>
-<section id="sources" class="page"><h1>Source registry</h1><div class="card"><h2>Add a monitored feed</h2><form id="source-form"><input name="name" placeholder="Source name" required><input name="url" type="url" placeholder="https://… RSS or Atom URL" required><input name="authority" placeholder="Authority (primary, industry…)" value="unknown"><input name="topics" placeholder="Topics, comma separated"><button class="primary full">Add local source</button></form><p id="source-message" class="muted"></p></div><div class="list" id="sources-list"></div></section>
+<section id="sources" class="page"><h1>Source registry</h1><div class="card"><h2>Add a monitored feed</h2><form id="source-form"><input name="name" placeholder="Source name" required><input name="url" type="url" placeholder="https://… RSS or Atom URL" required><input name="authority" placeholder="Authority (primary, industry…)" value="unknown"><input name="topics" placeholder="Topics, comma separated"><button class="primary full">Add local source</button></form><p id="source-message" class="muted"></p></div><div class="list" id="sources-list"></div><div class="card"><h2>Capture one decision signal</h2><p class="muted">Paste a public article or announcement. Signal Forge will fetch it only when you submit it, analyse it locally, and add it to Findings.</p><form id="ingest-form"><input class="full" name="url" type="url" placeholder="https://… article or announcement URL" required><input name="topics" placeholder="Topics, comma separated"><button class="primary full">Capture and analyse</button></form><p id="ingest-message" class="muted"></p></div></section>
 <section id="briefing" class="page"><h1>Investment briefing</h1><div class="tools"><button id="export-json">Export JSON</button><button id="export-md">Export Markdown</button></div><article class="card"><pre id="brief"></pre></article></section></main><script>
 const $=s=>document.querySelector(s);let data={items:[]};
 async function api(path,opt){let r=await fetch(path,opt);let j=await r.json();if(!r.ok)throw Error(j.error||'Request failed');return j}
@@ -24,7 +24,7 @@ function renderFindings(){let q=$('#search').value.toLowerCase(),p=$('#priority'
 function renderSources(){$('#sources-list').innerHTML=data.sources.length?data.sources.map(x=>`<div class="card"><b>${esc(x.name)}</b><p class="muted">${esc(x.url)}</p><span>${esc(x.authority||'unknown')} · ${esc(x.scan_method)}</span></div>`).join(''):'<div class="card empty">No sources configured. Add an official Polish/EU RSS or Atom feed above, then run a scan.</div>'}
 document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-page],.page').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.page).classList.add('active')});$('#search').oninput=renderFindings;$('#priority').onchange=renderFindings;
 $('#source-form').onsubmit=async e=>{e.preventDefault();let o=Object.fromEntries(new FormData(e.target));o.topics=o.topics.split(',').map(x=>x.trim()).filter(Boolean);try{let r=await api('/api/sources',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});$('#source-message').textContent=r.created?'Source added. It will only be fetched when you click Scan.':'That source is already registered.';e.target.reset();await refresh()}catch(err){$('#source-message').textContent=err.message}};
-$('#scan').onclick=async()=>{let b=$('#scan');b.textContent='Scanning configured feeds…';b.disabled=true;try{let r=await api('/api/scan',{method:'POST'});alert(`Scan completed: ${r.added} new item(s), ${r.scored} scored. ${r.errors.length?r.errors.join('\n'):''}`);await refresh()}catch(e){alert(e.message)}finally{b.textContent='Run RSS / Atom scan';b.disabled=false}};function download(path,name){fetch(path).then(r=>r.blob()).then(b=>{let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click()})}$('#export-json').onclick=()=>download('/api/briefing?format=json','signal-forge-briefing.json');$('#export-md').onclick=()=>download('/api/briefing?format=md','signal-forge-briefing.md');refresh();</script></body></html>'''
+$('#ingest-form').onsubmit=async e=>{e.preventDefault();let o=Object.fromEntries(new FormData(e.target));o.topics=o.topics.split(',').map(x=>x.trim()).filter(Boolean);let out=$('#ingest-message');out.textContent='Capturing source…';try{let r=await api('/api/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)});out.textContent=r.created?'Signal captured and analysed.':'This signal is already in the vault.';e.target.reset();await refresh()}catch(err){out.textContent=err.message}};$('#scan').onclick=async()=>{let b=$('#scan');b.textContent='Scanning configured feeds…';b.disabled=true;try{let r=await api('/api/scan',{method:'POST'});alert(`Scan completed: ${r.added} new item(s), ${r.scored} scored. ${r.errors.length?r.errors.join('\n'):''}`);await refresh()}catch(e){alert(e.message)}finally{b.textContent='Run RSS / Atom scan';b.disabled=false}};function download(path,name){fetch(path).then(r=>r.blob()).then(b=>{let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click()})}$('#export-json').onclick=()=>download('/api/briefing?format=json','signal-forge-briefing.json');$('#export-md').onclick=()=>download('/api/briefing?format=md','signal-forge-briefing.md');refresh();</script></body></html>'''
 
 class Handler(BaseHTTPRequestHandler):
     db_path = 'signal-forge.db'
@@ -47,13 +47,19 @@ class Handler(BaseHTTPRequestHandler):
             else:self.send_json({'error':'Not found'},404)
         finally:s.close()
     def do_POST(self):
-        if self.path not in ('/api/sources','/api/scan'):return self.send_json({'error':'Not found'},404)
+        if self.path not in ('/api/sources','/api/scan','/api/ingest'):return self.send_json({'error':'Not found'},404)
         s=self.store()
         try:
             if self.path=='/api/sources':
                 n=int(self.headers.get('Content-Length','0'));d=json.loads(self.rfile.read(n) or b'{}');
                 if not d.get('name') or not d.get('url') or not d['url'].startswith(('http://','https://')):raise ValueError('A name and http(s) feed URL are required.')
                 sid,created=s.add_source({'name':d['name'],'url':d['url'],'authority':d.get('authority','unknown'),'topics':d.get('topics',[]),'scan_method':'rss'});self.send_json({'id':sid,'created':created},201 if created else 200)
+            elif self.path=='/api/ingest':
+                n=int(self.headers.get('Content-Length','0'));d=json.loads(self.rfile.read(n) or b'{}')
+                if not d.get('url') or not d['url'].startswith(('http://','https://')):raise ValueError('A public http(s) URL is required.')
+                item=ingest_url(d['url'], topics=d.get('topics',[]));iid,created=s.add_item(item)
+                if created:s.save_analysis(iid,Analyst().analyze(item))
+                self.send_json({'id':iid,'created':created},201 if created else 200)
             else:
                 added=scored=0;errors=[]
                 for source in s.sources():

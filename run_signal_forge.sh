@@ -25,6 +25,13 @@ fi
 echo "Preparing Signal Forge..."
 "$PY" -m pip install --disable-pip-version-check -q -e "$ROOT_DIR"
 
+# A second launch should open the running cockpit, not fail with "address already in use".
+if command -v curl >/dev/null 2>&1 && curl --silent --fail --max-time 1 "http://127.0.0.1:${PORT}/api/health" >/dev/null; then
+  echo "Signal Forge is already running at http://127.0.0.1:${PORT}"
+  if command -v wslview >/dev/null 2>&1; then wslview "http://127.0.0.1:${PORT}/"; else "$PYTHON_BIN" -m webbrowser "http://127.0.0.1:${PORT}/"; fi
+  exit 0
+fi
+
 if [[ ! -f "$DB" ]]; then
   echo "Initialising GGP source registry..."
   "$PY" -m signal_forge --db "$DB" init-db
