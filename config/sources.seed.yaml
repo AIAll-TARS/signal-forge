@@ -1,0 +1,104 @@
+version: 1
+project: Galia Green Power
+geographies: [Poland, European Union]
+sources:
+  - name: European Commission, Energy
+    url: https://energy.ec.europa.eu/news_en
+    authority: primary
+    topics: [policy-regulation, market-economics]
+    scan_method: news_page
+  - name: European Commission, Have Your Say
+    url: https://ec.europa.eu/info/law/better-regulation/have-your-say_en
+    authority: primary
+    topics: [policy-regulation]
+    scan_method: portal
+  - name: EUR-Lex
+    url: https://eur-lex.europa.eu/homepage.html
+    authority: primary
+    topics: [policy-regulation]
+    scan_method: search_alert
+  - name: European Biogas Association
+    url: https://www.europeanbiogas.eu/
+    authority: industry
+    topics: [policy-regulation, market-economics, projects-transactions]
+    scan_method: news_page
+  - name: Biomethane Industrial Partnership
+    url: https://biomethane-industrial-partnership.ec.europa.eu/
+    authority: primary
+    topics: [policy-regulation, projects-transactions, technology-operations]
+    scan_method: news_page
+  - name: International Energy Agency, Biogas and Biomethane
+    url: https://www.iea.org/energy-system/renewables/bioenergy
+    authority: research
+    topics: [market-economics, technology-operations]
+    scan_method: news_page
+  - name: ACER
+    url: https://www.acer.europa.eu/news-and-events/news
+    authority: primary
+    topics: [market-economics, infrastructure-grid]
+    scan_method: news_page
+  - name: ENTSOG
+    url: https://www.entsog.eu/news/
+    authority: primary
+    topics: [infrastructure-grid]
+    scan_method: news_page
+  - name: Gas Infrastructure Europe
+    url: https://www.gie.eu/
+    authority: industry
+    topics: [infrastructure-grid, market-economics]
+    scan_method: news_page
+  - name: Polish Ministry of Climate and Environment
+    url: https://www.gov.pl/web/klimat
+    authority: primary
+    topics: [policy-regulation]
+    scan_method: news_page
+  - name: Government Legislation Centre, Poland
+    url: https://legislacja.rcl.gov.pl/
+    authority: primary
+    topics: [policy-regulation]
+    scan_method: portal
+  - name: Energy Regulatory Office, URE
+    url: https://www.ure.gov.pl/
+    authority: primary
+    topics: [policy-regulation, market-economics]
+    scan_method: news_page
+  - name: Polish Power Exchange, TGE
+    url: https://tge.pl/
+    authority: primary
+    topics: [market-economics]
+    scan_method: market_page
+  - name: Gaz-System
+    url: https://www.gaz-system.pl/
+    authority: primary
+    topics: [infrastructure-grid, projects-transactions]
+    scan_method: news_page
+  - name: PSE
+    url: https://www.pse.pl/
+    authority: primary
+    topics: [infrastructure-grid]
+    scan_method: news_page
+  - name: National Fund for Environmental Protection and Water Management, NFOŚiGW
+    url: https://www.gov.pl/web/nfosigw
+    authority: primary
+    topics: [policy-regulation, projects-transactions]
+    scan_method: news_page
+  - name: National Support Centre for Agriculture, KOWR
+    url: https://www.gov.pl/web/kowr
+    authority: primary
+    topics: [technology-operations, market-economics]
+    scan_method: news_page
+  - name: Statistics Poland, GUS
+    url: https://stat.gov.pl/en/
+    authority: primary
+    topics: [market-economics]
+    scan_method: publication_page
+  - name: Eurostat
+    url: https://ec.europa.eu/eurostat/
+    authority: primary
+    topics: [market-economics]
+    scan_method: publication_page
+  - name: Bioenergy International
+    url: https://bioenergyinternational.com/
+    authority: trade_press
+    topics: [technology-operations, projects-transactions]
+    scan_method: news_page
