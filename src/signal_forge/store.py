@@ -27,7 +27,7 @@ def content_hash(text: str) -> str:
 class Store:
     def __init__(self, path: str | Path):
         self.path = str(path)
-        self.conn = sqlite3.connect(self.path)
+        self.conn = sqlite3.connect(self.path, timeout=30)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
 
@@ -71,6 +71,35 @@ class Store:
         cur = self.conn.execute("INSERT INTO sources(name,url,authority,topics,scan_method,created_at) VALUES(?,?,?,?,?,?)", (
             source["name"], url, source.get("authority", "unknown"), json_dump(source.get("topics", [])), source.get("scan_method", "rss"), now()))
         self.conn.commit(); return cur.lastrowid, True
+
+    def upsert_source(self, source: dict) -> tuple[int, bool]:
+        url = canonical_url(source["url"])
+        topics = json_dump(source.get("topics", []))
+        active = 1 if source.get("active", True) else 0
+        row = self.conn.execute("SELECT id FROM sources WHERE url=?", (url,)).fetchone()
+        if row:
+            self.conn.execute("UPDATE sources SET name=?, authority=?, topics=?, scan_method=?, active=? WHERE id=?", (
+                source["name"], source.get("authority", "unknown"), topics, source.get("scan_method", "rss"), active, row["id"]))
+            self.conn.commit(); return int(row["id"]), False
+        cur = self.conn.execute("INSERT INTO sources(name,url,authority,topics,scan_method,active,created_at) VALUES(?,?,?,?,?,?,?)", (
+            source["name"], url, source.get("authority", "unknown"), topics, source.get("scan_method", "rss"), active, now()))
+        self.conn.commit(); return cur.lastrowid, True
+
+    def source_by_url(self, url: str):
+        return self.conn.execute("SELECT * FROM sources WHERE url=?", (canonical_url(url),)).fetchone()
+
+    def all_sources(self):
+        return self.conn.execute("SELECT * FROM sources ORDER BY id").fetchall()
+
+    def deactivate_except(self, urls: set[str]) -> int:
+        changed = 0
+        for row in self.all_sources():
+            if row["url"] not in urls and row["active"]:
+                self.conn.execute("UPDATE sources SET active=0 WHERE id=?", (row["id"],)); changed += 1
+        self.conn.commit(); return changed
+
+    def last_log(self, command: str):
+        return self.conn.execute("SELECT * FROM run_logs WHERE command=? ORDER BY id DESC LIMIT 1", (command,)).fetchone()
 
     def sources(self):
         return self.conn.execute("SELECT * FROM sources WHERE active=1 ORDER BY id").fetchall()

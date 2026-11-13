@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 signal-forge.db
 *.sqlite3
+*.egg-info/
+.signal-forge-watch.pid
+logs/

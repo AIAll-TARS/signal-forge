@@ -1,6 +1,6 @@
 # Signal Forge
 
-A local-first Python 3.11+ MVP for investment intelligence on Polish and EU biogas and biomethane. It uses only the standard library and SQLite. No data leaves the machine except when a user explicitly runs `collect` or `ingest-url`.
+A local-first Python 3.11+ MVP for investment intelligence on Polish and EU biogas and biomethane. It uses only the standard library and SQLite. The machine fetches a feed only when the collector runs, or when you capture one URL.
 
 ## WSL, first launch
 
@@ -10,9 +10,11 @@ From any WSL terminal, run:
 /home/aiall/projects/signal-forge/run_signal_forge.sh
 ```
 
-The launcher creates a local `.venv`, installs Signal Forge, initializes the SQLite database, imports the GGP source registry only for a fresh database, and opens the cockpit at `http://127.0.0.1:8765`. Press `Ctrl+C` in that terminal to stop the local app.
+The launcher creates a local `.venv`, installs Signal Forge, and opens the cockpit at `http://127.0.0.1:8765`. Press `Ctrl+C` in that terminal to stop the cockpit and the collector.
 
-The dashboard is local-only: it does not contact the network until you explicitly click **Run RSS / Atom scan** (or invoke the existing CLI collection/URL-ingest commands). Add only RSS or Atom source URLs for scanning.
+The source list is `config/sources.yaml`. Edit that file in any editor. The collector reads it every 15 minutes and writes findings into `signal-forge.db`. The cockpit shows the vault. It does not own the list. Adding a feed in the cockpit writes the same file.
+
+Only sources with `scan_method: rss`, `atom`, or `feed` are fetched. The seeded entries are web pages, so they stay in the list and are skipped until you give them a feed URL.
 
 ## Manual setup
 
@@ -21,11 +23,12 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -e .
 python -m signal_forge init-db
-python -m signal_forge import-sources config/sources.seed.yaml
-python -m signal_forge serve --open
+python -m signal_forge sync-sources config/sources.yaml
+python -m signal_forge watch --sources config/sources.yaml --interval 900
+python -m signal_forge serve --sources config/sources.yaml --open
 ```
 
-The source file supports JSON and a compact YAML subset. Seed sources are primarily web pages, so their deliberately unsupported scan methods are reported cleanly until a collector is added. RSS/Atom sources use `scan_method: rss`, `atom`, or `feed`.
+The source file supports JSON and a compact YAML subset. `config/sources.seed.yaml` is the starting list. The working list is `config/sources.yaml`.
 
 ## Commands
 
